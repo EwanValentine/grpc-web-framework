@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -17,6 +18,7 @@ func New() *Server {
 	return &Server{
 		router:    r,
 		endpoints: make(map[string]map[string]Endpoint),
+		mu:        &sync.RWMutex{},
 	}
 }
 
@@ -25,22 +27,32 @@ func New() *Server {
 type Server struct {
 	router    *http.ServeMux
 	endpoints map[string]map[string]Endpoint
+	mu        *sync.RWMutex
 }
 
 // RegisterEndpoint registers a handler to a method and path
 func (s *Server) RegisterEndpoint(method, path string, handler Endpoint) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.endpoints[path] = make(map[string]Endpoint)
 	s.endpoints[path][method] = handler
 }
 
 // InvokeEndpoint invokes an endpoint by path and method
 func (s *Server) InvokeEndpoint(method, path string, body []byte) ([]byte, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	return s.endpoints[path][method](body)
 }
 
 // ServeHTTP introspects the incoming request, and looks for a registered endpoint
 // for this path, and http method
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	if endpoint, ok := s.endpoints[r.URL.Path][r.Method]; ok {
 
 		// TODO: map headers to grpc metadata ctx?
