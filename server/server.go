@@ -13,8 +13,6 @@ import (
 
 func New() *Server {
 	r := http.NewServeMux()
-
-	// TODO: we probably need a mutex here to manage concurrent access to the endpoints map
 	return &Server{
 		router:    r,
 		endpoints: make(map[string]map[string]Endpoint),
