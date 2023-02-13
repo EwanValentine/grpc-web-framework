@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package uploads;
+
+option go_package = "test-service/gen/go/proto";
+
+service GreeterService {
+  rpc Greet(GreetRequest) returns (GreetResponse);
+}
+
+message GreetRequest {
+  string name = 1;
+}
+
+message GreetResponse {
+  string message = 1;
+}
+
